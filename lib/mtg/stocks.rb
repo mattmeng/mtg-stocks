@@ -1,4 +1,4 @@
-require "mtg/constants"
+require "mtg/stocks/constants"
 require 'net/http'
 
 module Mtg
