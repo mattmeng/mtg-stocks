@@ -8,21 +8,23 @@ module Mtg
     def card_info( id )
       return nil unless id and id > 0
 
-      html = Net::HTTP.get( MTGSTOCKS_URL, "/cards/#{id}" )
-      return nil unless html
+      response = Net::HTTP.get_response( MTGSTOCKS_URL, "/cards/#{id}" )
+      if response.code == '200'
+        tcg_id, card_name = tgc_id_and_name( response.body )
+        set_name_s = set_name( response.body )
 
-      tcg_id, card_name = tgc_id_and_name( html )
-      set_name_s = set_name( html )
-
-      return {
-        low_price: price( html, :lowprice ),
-        average_price: price( html, :avgprice ),
-        high_price: price( html, :highprice ),
-        foil_price: price( html, :foilprice ),
-        tcg_id: tcg_id,
-        card_name: card_name,
-        set_name: set_name_s
-      }
+        return {
+          low_price: price( response.body, :lowprice ),
+          average_price: price( response.body, :avgprice ),
+          high_price: price( response.body, :highprice ),
+          foil_price: price( response.body, :foilprice ),
+          tcg_id: tcg_id,
+          card_name: card_name,
+          set_name: set_name_s
+        }
+      else
+        return nil
+      end
     end
 
     def self.instance
@@ -45,9 +47,9 @@ module Mtg
     end
 
     def price( source, type )
-      rtnval = source.scan( /Prices of last 10 records.*?#{type}['"]>\$?(.*?)<\/td>/m )
-      rtnval = rtnval.first.first
-      rtnval = 0.0 if rtnval == 'N/A'
+      rtnval = 0.0
+      prices = source.scan( /Prices of last 10 records.*?#{type}['"]>\$?(.*?)<\/td>/m )
+      rtnval = prices.first.first if prices && prices.first && prices.first.first != 'N/A'
       return rtnval.to_f
     end
   end
